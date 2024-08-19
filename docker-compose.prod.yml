@@ -1,0 +1,38 @@
+version: "3"
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - ./.env.prod
+    ports:
+      - 8001:8001
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8001 --workers 4 --timeout 120
+    networks:
+      - boilerplate_network
+    volumes:
+      - static_volume:/home/app/staticfiles
+      - media_volume:/home/app/mediafiles
+
+  web_api:
+    build: ./nginx
+    restart: always
+    ports:
+      - 8000:8000
+    volumes:
+      - static_volume:/code/staticfiles
+      - media_volume:/code/mediafiles
+    depends_on:
+      - api
+    networks:
+      - boilerplate_network
+
+volumes:
+  static_volume:
+  media_volume:
+
+networks:
+  boilerplate_network:
+    driver: bridge
+    name: boilerplate_network

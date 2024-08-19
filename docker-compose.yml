@@ -1,0 +1,79 @@
+version: "3"
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - ./.env.dev
+    ports:
+      - 8000:8000
+    volumes:
+      - .:/home/app
+    command: python manage.py runserver 0.0.0.0:8000
+    depends_on:
+      - db
+    networks:
+      - boilerplate_network
+
+  db:
+    image: postgres:15
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=boilerplate
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    networks:
+      - boilerplate_network
+
+  adminer:
+    image: adminer
+    ports:
+      - 8080:8080
+    networks:
+      - boilerplate_network
+
+  celery:
+    build: .
+    env_file:
+      - ./.env.dev
+    volumes:
+      - .:/home/app
+    command: celery -A config worker --loglevel=info
+    depends_on:
+      - db
+      - rabbitmq
+      - redis
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  smtp:
+    image: maildev/maildev
+    ports:
+      - 1080:1080
+      - 1025:1025
+    networks:
+      - boilerplate_network
+
+volumes:
+  postgres_data:
+
+networks:
+  boilerplate_network:
+    driver: bridge
+    name: boilerplate_network
